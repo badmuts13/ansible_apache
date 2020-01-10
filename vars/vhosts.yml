@@ -1,0 +1,3 @@
+# Variables file for the apache role
+# Niet gedefinieerde settings worden afgevangen door settings uit defaults/main.yml
+# Gebruik voor specifieke hostsettings de host_vars van de host

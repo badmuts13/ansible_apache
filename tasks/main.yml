@@ -1,0 +1,142 @@
+---
+# YAML file for basic configuration tasks of Apache (httpd) server. 
+
+# The tasks names should be sufficient to know what is happening
+
+
+- name: Firewall - Configure for http and https
+  firewalld:
+    service: "{{ item.service }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  loop: "{{ apache_firewalld }}"
+  notify:
+    - restart firewalld
+
+- name: ensure apache and mod_ssl are installed
+  yum: 
+    name: "{{ item.package }}"
+    state: present
+  loop: "{{ apache_packages }}"
+  register: fresh_install
+
+- name: Remove unneeded config files after fresh install.
+  file:
+    path: "{{ item.unneeded_file }}"
+    state: absent
+  loop: "{{ apache_fresh_install }}"
+  when: fresh_install.changed
+
+- name: create documentroot
+  file:
+    path: "/var/www/html/{{ item.servername }}"
+    state: directory
+    #recurse: yes
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: 0775
+  loop: "{{ apache_vhosts }}"
+  when: ansible_hostname is not regex ("^lcms*") 
+
+- name: ensure apache is enabled
+  service:
+    name: httpd
+    enabled: true
+  ignore_errors: yes
+
+- name: Configure httpd.conf on server
+  template:
+    src: templates/apache_httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+    owner: root
+    group: root
+    mode: 0400
+  loop: "{{ apache_httpd }}"
+  notify:
+    - restart httpd
+
+- name: Copy mod_ssl ssl.conf to server
+  template:
+    src: templates/apache_ssl.conf.j2
+    dest: /etc/httpd/conf.d/ssl.conf
+  loop: "{{ apache_mod_ssl }}"
+  notify:
+    - restart httpd
+
+- name: Copy mod_status status.conf to server
+  template:
+    src: templates/apache_status.conf.j2
+    dest: /etc/httpd/conf.modules.d/status.conf
+  notify: restart httpd
+
+- name: Copy apache ports.conf to server
+  template:
+    src: templates/apache_ports.conf.j2
+    dest: /etc/httpd/conf/ports.conf
+  loop: "{{ apache_vhosts }}"
+  notify:
+    - restart httpd
+
+- name: Copy virtualhost template to server
+  template:
+    src: templates/apache_vhosts.conf.j2
+    dest: "/etc/httpd/conf.d/{{ item.priority }}-{{ item.servername.split(' ')[0] }}.conf"
+    force: yes
+    owner: root
+    group: root
+    mode: 0644
+  loop: "{{ apache_vhosts }}"
+  notify:
+    - restart httpd
+
+- name: Copy the generic load modules file (base.load)
+  copy:
+    src: files/mods/base.load
+    dest: /etc/httpd/conf.modules.d/base.load
+  notify:
+    - restart httpd
+
+- name: Copy specific apache modules and needed configuration files
+  copy:
+    src: files/mods/{{ item.mod_file }}
+    dest: /etc/httpd/conf.modules.d/{{ item.mod_file }}
+  loop: "{{ apache_module_files }}"
+  when: ansible_hostname is not regex ("^lcms*")
+  notify:
+    - restart httpd
+
+- name: Copy needed apache configuration files
+  copy:
+    src: files/mods/{{ item.conf_file }}
+    dest: /etc/httpd/conf.d/{{ item.conf_file }}
+  loop: "{{ apache_conf_files }}"
+  when: ansible_hostname is not regex ("^lcms*")
+  notify:
+    - restart httpd
+
+- name: Copy certificates for domain 
+  copy:
+    src: "files/certs/{{ item.domain }}.crt"
+    dest: "/etc/pki/tls/certs/{{ item.domain }}.crt"
+    mode: 0400
+  loop: "{{ apache_certs }}"
+  no_log: true
+
+- name: Copy CA bundle file
+  copy:
+    src: "files/certs/{{ item.domain }}.ca-bundle"
+    dest: "/etc/pki/tls/certs/{{ item.domain }}.ca-bundle"
+    mode: 0400
+  loop: "{{ apache_certs }}"
+  no_log: true
+
+- name: Copy private keys for domains
+  copy:
+    content: "{{ item.sshkey }}"
+    dest: "/etc/pki/tls/private/{{ item.domain }}.key"
+    mode: 0400
+  loop: "{{ apache_certs }}"
+  no_log: true
+
+

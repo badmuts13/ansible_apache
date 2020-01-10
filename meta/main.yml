@@ -1,0 +1,21 @@
+---
+dependencies: []
+
+galaxy_info:
+  author: badmuts13
+  description: Apache 2.x for Linux.
+  company: "Stichting Volandis"
+  license: "license (BSD, MIT)"
+  min_ansible_version: 2.4
+  platforms:
+    - name: EL
+      versions:
+        - 7777777
+  galaxy_tags:
+    - web
+    - apache
+    - webserver
+    - html
+    - httpd
+
+allow_duplicates: true

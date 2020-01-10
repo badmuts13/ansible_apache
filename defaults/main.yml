@@ -1,0 +1,71 @@
+---
+# This file contains the default vars for apache server
+# The vars in this file will be overwritten if defined elsewhere (vars/, host_vars/, group_vars/)
+
+# Files to cleanup after fresh install
+apache_fresh_install:
+  - unneeded_file: /etc/httpd/conf.d/autoindex.conf
+  - unneeded_file: /etc/httpd/conf.d/userdir.conf
+  - unneeded_file: /etc/httpd/conf.d/welcome.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/00-base.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/00-dav.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/00-lua.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/00-mpm.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/00-proxy.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/00-ssl.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/00-systemd.conf
+  - unneeded_file: /etc/httpd/conf.modules.d/01-cgi.conf
+
+# Default settings used in template apache_httpd.conf.j2
+apache_httpd:
+  - Timeout: 300
+    MaxKeepAliveRequests: 100
+    KeepAliveTimeout: 15
+    LimitRequestFieldSize: 8190
+    LimitRequestFields: 100
+
+# Settings used in template ssl.conf.j2  
+apache_mod_ssl:
+  - SSLCipherSuite: ALL:+HIGH:!ADH:!EXP:!SSLv2:!SSLv3:!MEDIUM:!LOW:!NULL:!aNULL
+    SSLProtocol: TLSv1.2
+    SSLHonorCipherOrder: "On"
+
+# Settings used in template apache_vhosts.conf.j2
+apache_vhosts:
+  - servername: "{{ ansible_fqdn }}"
+    docroot: "" 
+    serveradmin: your_email@example.com
+    http_port: 80
+    https_port: 443
+    priority: 99
+    owner: apache
+    group: apache
+    rewrite: on 
+    override: None
+    domain: "{{ ansible_domain }}"
+
+apache_firewalld:
+  - service: http
+  - service: https
+
+# extra load files.
+ 
+apache_module_files:
+  - mod_file: prefork.load
+  - mod_file: prefork.conf
+  - mod_file: dir.conf
+  - mod_file: mime.conf
+  - mod_file: alias.conf 
+
+apache_conf_files:
+  - conf_file: README
+
+# variables used in tasks/main.yml
+apache_certs:
+  - domain: example.com
+    sshkey: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          62666335386633323334306232343830613663373762636638366439386239343836643764386133
+          62386231306130663864653339643561336238343965613036363832623939636261363862343936
+          3365623837643138650a336334373139386531653232323739363534323437336666393532303335
+          61363438303734616237323962643739613730356439616661323236396533643065646266313738

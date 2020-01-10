@@ -1,0 +1,5 @@
+# apache packages used in tasks/main.yml
+apache_packages:
+  - package: httpd
+  - package: mod_ssl
+

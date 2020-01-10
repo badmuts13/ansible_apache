@@ -1,0 +1,109 @@
+###############################################
+#            !!!WARNING!!!                    #
+# The {{ item.priority }}-{{ item.servername }}.conf file   #
+# is managed by Ansible.                 #
+# Any changes will be overwritten        #
+##########################################
+
+<VirtualHost *:{{ item.http_port }}>
+ServerName {{ item.servername | default('ansible_fqdn') }}
+{% if item.docroot is defined %}
+DocumentRoot {{ item.docroot }}
+{% else %}
+DocumentRoot /var/www/html/{{ item.servername }}
+{% endif %}
+ServerAdmin {{ item.serveradmin | default('linuxbeheer@volandis.nl') }}
+
+{% if item.docroot is defined %}
+<Directory {{ item.docroot }}>
+{% else %}
+<Directory /var/www/html/{{ item.servername }}>
+{% endif %}
+  AllowOverride None
+  Options Indexes FollowSymLinks MultiViews
+  Require all granted
+</Directory>
+
+# Logging location
+  ErrorLog "/var/log/httpd/{{ item.servername }}_error.log"
+  ServerSignature Off
+  CustomLog "/var/log/httpd/{{ item.servername }}_access.log" combined
+
+# Rewrite rules
+  RewriteEngine On
+  RewriteCond %{HTTPS} off'
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+ {% if item.redirect is defined %}
+# Redirect rules
+Redirect {{ item.redirect }}
+ {% endif %}
+</VirtualHost>
+
+  {% if item.https_port is defined %}
+
+<VirtualHost *:{{ item.https_port }}>
+ServerName {{ item.servername }}
+{% if item.docroot is defined %}
+DocumentRoot {{ item.docroot }}
+{% else %}
+DocumentRoot /var/www/html/{{ item.servername }}
+{% endif %}
+ServerAdmin {{ item.serveradmin | default('linuxbeheer@volandis.nl') }}
+
+# Alias declarations for resources outside the docroot go here
+{% if item.alias is defined %}
+Alias {{ item.alias }}
+{% endif %}
+{% if item.scriptalias is defined %}
+ScriptAlias {{ item.scriptalias }}
+{% endif %}
+
+
+{% if item.docroot is defined %}
+<Directory {{ item.docroot }}>
+{% else %}
+<Directory /var/www/html/{{ item.servername }}>
+{% endif %}
+  AllowOverride {{ item.override }}
+  Options Indexes FollowSymLinks MultiViews
+  Require all granted
+</Directory>
+
+# Logging location
+  ErrorLog "/var/log/httpd/{{ item.servername }}_error.log"
+  ServerSignature Off
+  CustomLog "/var/log/httpd/{{ item.servername }}_access.log" combined
+
+{% if item.rewrite is defined %}
+# Rewrite rules
+  RewriteEngine On
+  {{ item.rewrite_cond | default('') }}
+  {% if item.rewrite_rule is defined %}
+  RewriteRule {{ item.rewrite_rule }}
+  {% endif %}
+{% endif %}
+
+# Security HTTP Headers
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+  Header set X-Content-Type-Options nosniff
+  Header set X-XSS-Protection: "1; mode=block"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header unset X-Powered-By
+
+ {% if item.proxyrequests is defined %}
+# Proxy rules
+  ProxyRequests {{ item.proxyrequests }}
+  ProxyPreserveHost {{ item.proxypreservehost }}
+  ProxyPass        {{ item.proxypass }}
+  ProxyPassReverse {{ item.proxypassreverse }}
+ {% endif %}
+
+# SSL directives
+  SSLEngine on
+  SSLCertificateFile      "/etc/pki/tls/certs/{{ item.domain }}.crt"
+  SSLCertificateKeyFile   "/etc/pki/tls/private/{{ item.domain }}.key"
+  SSLCertificateChainFile "/etc/pki/tls/certs/{{ item.domain }}.ca-bundle"
+</VirtualHost>
+{% endif %}
+

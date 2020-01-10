@@ -1,0 +1,11 @@
+<Location /server-status>
+    SetHandler server-status
+    Require ip 127.0.0.1 ::1 {{ ansible_eth0.ipv4.address }} 10.10.15.0/24 10.3.15.0/24
+</Location>
+ExtendedStatus On
+
+<IfModule mod_proxy.c>
+    # Show Proxy LoadBalancer status in mod_status
+    ProxyStatus On
+</IfModule>
+

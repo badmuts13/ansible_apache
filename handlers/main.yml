@@ -1,0 +1,14 @@
+---
+# YAML file for Apache (httpd) server handlers. 
+#
+# The tasks names should be sufficient to know what is happening
+#
+- name: restart httpd
+  service: 
+    name: httpd
+    state: restarted
+
+- name: restart firewalld
+  service:
+    name: firewalld
+    state: restarted
